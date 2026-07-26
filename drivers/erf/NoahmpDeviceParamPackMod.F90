@@ -72,33 +72,189 @@ contains
 
     nsoil = noahmp%config%domain%NumSoilLayer
 
-    ! ---------------------------------------------------------------------
-    ! PACK ORDER CONTRACT (mirror in ERF_NOAHMP_DeviceState.H unpack)
-    ! [slice] scalars then per-layer soil arrays.
-    ! ---------------------------------------------------------------------
+    ! =====================================================================
+    ! PACK ORDER CONTRACT (mirror EXACTLY in ERF_NOAHMP_DeviceState.H unpack).
+    ! Grouped: config/domain -> energy scalar -> energy veg-indexed ->
+    ! energy banded(nband) -> monthly LAI/SAI(12) -> water scalar ->
+    ! water veg/slope-indexed -> per-layer soil arrays(nsoil).
+    ! Count = noahmp_dev_param_count(nsoil,nband) on both sides.
+    ! =====================================================================
     p = 0
+    associate(dm => noahmp%config%domain, nml => noahmp%config%nmlist, &
+              ep => noahmp%energy%param,   wp  => noahmp%water%param)
 
-    ! --- domain / config scalars ---
-    p=p+1; buf(p) = real(noahmp%config%domain%NumSoilLayer,     kind_noahmp) ! [1] nsoil
-    p=p+1; buf(p) = real(noahmp%config%domain%VegType,          kind_noahmp) ! [2] veg_type
-    p=p+1; buf(p) = real(noahmp%config%domain%NumSwRadBand,     kind_noahmp) ! [3] num_sw_rad_band
+    ! ---- [G1] config / domain scalars (ints stored as reals) ----
+    p=p+1; buf(p) = real(dm%NumSoilLayer,   kind_noahmp)
+    p=p+1; buf(p) = real(dm%NumSwRadBand,   kind_noahmp)
+    p=p+1; buf(p) = real(dm%VegType,        kind_noahmp)
+    p=p+1; buf(p) = real(dm%SurfaceType,    kind_noahmp)
+    p=p+1; buf(p) = real(dm%IndexIcePoint,  kind_noahmp)
+    p=p+1; buf(p) = real(dm%IndexBarrenPoint,kind_noahmp)
+    p=p+1; buf(p) = real(dm%IndexWaterPoint,kind_noahmp)
+    p=p+1; buf(p) = real(dm%CropType,       kind_noahmp)
+    p=p+1; buf(p) = real(merge(1,0,dm%FlagUrban), kind_noahmp)
+    p=p+1; buf(p) = real(wp%NumSoilLayerRoot, kind_noahmp)
+    ! namelist options
+    p=p+1; buf(p) = real(nml%OptDynamicVeg,            kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptRainSnowPartition,     kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptSoilWaterTranspiration,kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptGroundResistanceEvap,  kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptSurfaceDrag,           kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptStomataResistance,     kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptSnowAlbedo,            kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptCanopyRadiationTransfer,kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptSnowSoilTempTime,      kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptSnowThermConduct,      kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptSoilTemperatureBottom, kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptSoilSupercoolWater,    kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptSoilPermeabilityFrozen,kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptTileDrainage,          kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptRunoffSurface,         kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptRunoffSubsurface,      kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptSnowCompaction,        kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptWetlandModel,          kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptSnowCoverGround,       kind_noahmp)
+    p=p+1; buf(p) = real(nml%OptCropModel,             kind_noahmp)
+    ! domain reals
+    p=p+1; buf(p) = dm%MainTimeStep
+    p=p+1; buf(p) = dm%SoilTimeStep
+    p=p+1; buf(p) = real(dm%NumSoilTimeStep, kind_noahmp)
+    p=p+1; buf(p) = dm%GridSize
+    p=p+1; buf(p) = dm%DepthSoilTempBottom
+    p=p+1; buf(p) = dm%CosSolarZenithAngle
 
-    ! --- scalar energy param (table) ---
-    p=p+1; buf(p) = noahmp%energy%param%SoilHeatCapacity                     ! [4] CSOIL_TABLE
+    ! ---- [G2] energy scalar params ----
+    p=p+1; buf(p) = ep%SoilHeatCapacity
+    p=p+1; buf(p) = ep%SnowAgeFacBats
+    p=p+1; buf(p) = ep%SnowGrowVapFacBats
+    p=p+1; buf(p) = ep%SnowSootFacBats
+    p=p+1; buf(p) = ep%SnowGrowFrzFacBats
+    p=p+1; buf(p) = ep%SolarZenithAdjBats
+    p=p+1; buf(p) = ep%FreshSnoAlbVisBats
+    p=p+1; buf(p) = ep%FreshSnoAlbNirBats
+    p=p+1; buf(p) = ep%SnoAgeFacDifVisBats
+    p=p+1; buf(p) = ep%SnoAgeFacDifNirBats
+    p=p+1; buf(p) = ep%SzaFacDirVisBats
+    p=p+1; buf(p) = ep%SzaFacDirNirBats
+    p=p+1; buf(p) = ep%UpscatterCoeffSnowDir
+    p=p+1; buf(p) = ep%UpscatterCoeffSnowDif
+    p=p+1; buf(p) = ep%EmissivitySnow
+    p=p+1; buf(p) = ep%EmissivitySoilLake(1)   ! (:) idx 1=soil,2=lake -> soil path
+    p=p+1; buf(p) = ep%EmissivityIceSfc
+    p=p+1; buf(p) = ep%RoughLenMomSnow
+    p=p+1; buf(p) = ep%RoughLenMomSoil
+    p=p+1; buf(p) = ep%RoughLenMomLake
+    p=p+1; buf(p) = ep%ResistanceSoilExp
+    p=p+1; buf(p) = ep%ResistanceSnowSfc
+    p=p+1; buf(p) = ep%VegFracAnnMax
+    p=p+1; buf(p) = ep%VegFracGreen
+    p=p+1; buf(p) = wp%SnowMassFullCoverOld   ! SWEMX_TABLE (Water param; snow-aging in)
 
-    ! --- veg-indexed energy param ---
-    p=p+1; buf(p) = noahmp%energy%param%HeightCanopyTop                      ! [5] HVT_TABLE(VegType)
+    ! ---- [G3] energy veg-indexed params ----
+    p=p+1; buf(p) = ep%TreeCrownRadius
+    p=p+1; buf(p) = ep%HeightCanopyTop
+    p=p+1; buf(p) = ep%HeightCanopyBot
+    p=p+1; buf(p) = ep%RoughLenMomVeg
+    p=p+1; buf(p) = ep%CanopyWindExtFac
+    p=p+1; buf(p) = ep%TreeDensity
+    p=p+1; buf(p) = ep%CanopyOrientIndex
+    p=p+1; buf(p) = ep%HeatCapacCanFac
 
-    ! --- per-layer domain soil-depth array (nsoil) ---
-    do L = 1, nsoil
-       p=p+1; buf(p) = noahmp%config%domain%DepthSoilLayer(L)               ! [6..] ZSOIL
+    ! ---- [G4] energy banded params (1:NumSwRadBand) ----
+    do L = 1, dm%NumSwRadBand
+       p=p+1; buf(p) = ep%ReflectanceLeaf(L)
+    enddo
+    do L = 1, dm%NumSwRadBand
+       p=p+1; buf(p) = ep%ReflectanceStem(L)
+    enddo
+    do L = 1, dm%NumSwRadBand
+       p=p+1; buf(p) = ep%TransmittanceLeaf(L)
+    enddo
+    do L = 1, dm%NumSwRadBand
+       p=p+1; buf(p) = ep%TransmittanceStem(L)
+    enddo
+    do L = 1, dm%NumSwRadBand
+       p=p+1; buf(p) = ep%AlbedoSoilSat(L)
+    enddo
+    do L = 1, dm%NumSwRadBand
+       p=p+1; buf(p) = ep%AlbedoSoilDry(L)
+    enddo
+    do L = 1, dm%NumSwRadBand
+       p=p+1; buf(p) = ep%AlbedoLakeFrz(L)
+    enddo
+    do L = 1, dm%NumSwRadBand
+       p=p+1; buf(p) = ep%ScatterCoeffSnow(L)
     enddo
 
-    ! --- per-layer soil-type-indexed water param (nsoil) ---
-    do L = 1, nsoil
-       p=p+1; buf(p) = noahmp%water%param%SoilMoistureSat(L)                ! [..] SMCMAX_TABLE(SoilType(L))
+    ! ---- [G5] monthly LAI/SAI (1:12) ----
+    do L = 1, 12
+       p=p+1; buf(p) = ep%LeafAreaIndexMon(L)
+    enddo
+    do L = 1, 12
+       p=p+1; buf(p) = ep%StemAreaIndexMon(L)
     enddo
 
+    ! ---- [G6] water scalar params ----
+    p=p+1; buf(p) = wp%SnowCompactBurdenFac
+    p=p+1; buf(p) = wp%SnowCompactAgingFac1
+    p=p+1; buf(p) = wp%SnowCompactAgingFac2
+    p=p+1; buf(p) = wp%SnowCompactAgingFac3
+    p=p+1; buf(p) = wp%SnowCompactAgingMax
+    p=p+1; buf(p) = wp%SnowViscosityCoeff
+    p=p+1; buf(p) = wp%SnowLiqFracMax
+    p=p+1; buf(p) = wp%SnowLiqHoldCap
+    p=p+1; buf(p) = wp%SnowLiqReleaseFac
+    p=p+1; buf(p) = wp%SoilConductivityRef
+    p=p+1; buf(p) = wp%SoilInfilFacRef
+    p=p+1; buf(p) = wp%GroundFrzCoeff
+    p=p+1; buf(p) = wp%SnowfallDensityMax
+    p=p+1; buf(p) = wp%SnowMassFullCoverOld
+    p=p+1; buf(p) = wp%SoilMatPotentialWilt
+    p=p+1; buf(p) = wp%SnoWatEqvMaxGlacier
+    p=p+1; buf(p) = wp%SoilInfilMaxCoeff
+    p=p+1; buf(p) = wp%SoilImpervFracCoeff
+    p=p+1; buf(p) = wp%SoilDrainSlope
+
+    ! ---- [G7] water veg-indexed params ----
+    p=p+1; buf(p) = wp%CanopyLiqHoldCap
+    p=p+1; buf(p) = wp%SnowMeltFac
+    p=p+1; buf(p) = wp%SnowCoverFac
+
+    ! ---- [G8] per-layer soil arrays (1:nsoil) ----
+    do L = 1, nsoil
+       p=p+1; buf(p) = dm%DepthSoilLayer(L)
+    enddo
+    ! (ThicknessSoilLayer is NOT packed: unresolved by the transfer chain
+    !  until GeneralInit; the device general_init derives it from depth.)
+    do L = 1, nsoil
+       p=p+1; buf(p) = ep%SoilQuartzFrac(L)
+    enddo
+    do L = 1, nsoil
+       p=p+1; buf(p) = wp%SoilMoistureSat(L)
+    enddo
+    do L = 1, nsoil
+       p=p+1; buf(p) = wp%SoilMoistureWilt(L)
+    enddo
+    do L = 1, nsoil
+       p=p+1; buf(p) = wp%SoilMoistureFieldCap(L)
+    enddo
+    do L = 1, nsoil
+       p=p+1; buf(p) = wp%SoilMoistureDry(L)
+    enddo
+    do L = 1, nsoil
+       p=p+1; buf(p) = wp%SoilWatDiffusivitySat(L)
+    enddo
+    do L = 1, nsoil
+       p=p+1; buf(p) = wp%SoilWatConductivitySat(L)
+    enddo
+    do L = 1, nsoil
+       p=p+1; buf(p) = wp%SoilExpCoeffB(L)
+    enddo
+    do L = 1, nsoil
+       p=p+1; buf(p) = wp%SoilMatPotentialSat(L)
+    enddo
+
+    end associate
     nused = p
 
   end subroutine NoahmpDeviceParamPackColumn
