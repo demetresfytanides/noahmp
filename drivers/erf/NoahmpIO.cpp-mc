@@ -16,6 +16,8 @@ extern "C" {
     void NoahmpWriteLand_fi(NoahmpIO_type_fi* noahmpio, int* filenum);
     void NoahmpWriteRestart_fi(NoahmpIO_type_fi* noahmpio, const char* dir, int* dir_len);
     void NoahmpReadRestart_fi(NoahmpIO_type_fi* noahmpio, const char* dir, int* dir_len);
+    void NoahmpDeviceParamPack_fi(NoahmpIO_type_fi* noahmpio, int* i, int* j,
+                                  noahmp_real* buf, int* nbuf, int* nused);
     void NoahmpIOTypeVectInit_fi(int* level, int* NBlocks);
 }
 
@@ -109,6 +111,12 @@ void NoahmpIO_type::WriteRestart(const std::string& dir) {
 void NoahmpIO_type::ReadRestart(const std::string& dir) {
      int dir_len = checked_dir_len(dir, "NoahmpIO_type::ReadRestart");
      NoahmpReadRestart_fi(&fptr, dir.c_str(), &dir_len);
+};
+
+int NoahmpIO_type::DeviceParamPack(int i, int j, noahmp_real* buf, int nbuf) {
+     int nused = 0;
+     NoahmpDeviceParamPack_fi(&fptr, &i, &j, buf, &nbuf, &nused);
+     return nused;
 };
 
 

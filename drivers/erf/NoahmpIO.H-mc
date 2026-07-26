@@ -293,6 +293,11 @@ class NoahmpIO_type {
         void WriteRestart(const std::string& dir);
         void ReadRestart(const std::string& dir);
 
+        // Pack the static per-column device (Kokkos GPU) params for column (i,j)
+        // into buf (size nbuf); returns the number of slots written. Runs the
+        // validated *VarInTransfer chain in Fortran so params match the CPU path.
+        int DeviceParamPack(int i, int j, noahmp_real* buf, int nbuf);
+
     private:
         NoahmpIO_type_fi fptr;
 };

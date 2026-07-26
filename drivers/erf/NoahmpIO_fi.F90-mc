@@ -7,6 +7,7 @@ module NoahmpIO_fi
   use NoahmpReadTableMod, ONLY: NoahmpReadTable
   use NoahmpReadLandMod, ONLY: NoahmpReadLandHeader, NoahmpReadLandMain
   use NoahmpDriverMainMod, ONLY: NoahmpDriverMain
+  use NoahmpDeviceParamPackMod, ONLY: NoahmpDeviceParamPackColumn
   use NoahmpWriteLandMod, ONLY: NoahmpWriteLand
   use NoahmpWriteRestartMod, ONLY: NoahmpWriteRestart
   use NoahmpReadRestartMod, ONLY: NoahmpReadRestart
@@ -179,6 +180,46 @@ contains
     call resolve_block(NoahmpIO_cptr, blk, level, bid)
     call NoahmpDriverMain(blk)
   end subroutine NoahmpDriverMain_fi
+
+  ! Pack the static per-column device (Kokkos GPU) params for one column (I,J)
+  ! into buf. Used ONCE at init by the ERF Kokkos-GPU land driver to build the
+  ! device LandState; runs the validated *VarInTransfer chain (params correct by
+  ! construction). nused returns the slot count (C++ asserts it == its contract).
+  subroutine NoahmpDeviceParamPack_fi(NoahmpIO_cptr, I, J, buf, nbuf, nused) &
+             bind(C, name="NoahmpDeviceParamPack_fi")
+    use iso_c_binding, only : C_INT
+    use Machine, only : c_kind_noahmp
+    use NoahmpVarType, only : noahmp_type
+    implicit none
+    type(NoahmpIO_type_fi), intent(inout) :: NoahmpIO_cptr
+    integer(C_INT), intent(in)            :: I, J
+    integer(C_INT), intent(in)            :: nbuf
+    real(c_kind_noahmp), intent(out)      :: buf(nbuf)
+    integer(C_INT), intent(out)           :: nused
+    type(NoahmpIO_type), pointer          :: blk
+    type(noahmp_type)                     :: noahmp
+    integer(C_INT)                        :: level, bid
+    integer                               :: K, nu
+
+    call resolve_block(NoahmpIO_cptr, blk, level, bid)
+
+    ! Box prelude the transfers depend on (mirror NoahmpDriverMain L112-128).
+    blk%YEARLEN = 365
+    if (mod(blk%YR,4) == 0) then
+       blk%YEARLEN = 366
+       if (mod(blk%YR,100) == 0) then
+          blk%YEARLEN = 365
+          if (mod(blk%YR,400) == 0) blk%YEARLEN = 366
+       endif
+    endif
+    blk%ZSOIL(1) = -blk%DZS(1)
+    do K = 2, blk%NSOIL
+       blk%ZSOIL(K) = -blk%DZS(K) + blk%ZSOIL(K-1)
+    enddo
+
+    call NoahmpDeviceParamPackColumn(noahmp, blk, I, J, buf, nbuf, nu)
+    nused = nu
+  end subroutine NoahmpDeviceParamPack_fi
 
   subroutine NoahmpWriteLand_fi(NoahmpIO_cptr, filenum) bind(C, name="NoahmpWriteLand_fi")
     use iso_c_binding, only : C_INT 
