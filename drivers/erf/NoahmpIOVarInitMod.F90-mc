@@ -433,6 +433,13 @@ contains
     NoahmpIO%RAINBL          = undefined_real
     NoahmpIO%SNOWBL          = undefined_real
     NoahmpIO%SR              = undefined_real
+    ! Surface-stress return terms: WriteLand(0) writes these to the lnd.nc
+    ! diagnostic at init, before step 1 computes them. Without a default they are
+    ! allocate-only garbage; on large boxes that garbage is a non-representable
+    ! double and the netCDF float put_var aborts ("Numeric conversion not
+    ! representable" / SIGFPE under fpe_trap). Initialize like every other field.
+    NoahmpIO%TAU_EW          = undefined_real
+    NoahmpIO%TAU_NS          = undefined_real
     NoahmpIO%RAINCV          = undefined_real
     NoahmpIO%RAINNCV         = undefined_real
     NoahmpIO%RAINSHV         = undefined_real
