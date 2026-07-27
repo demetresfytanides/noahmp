@@ -32,6 +32,8 @@ module NoahmpDeviceParamPackMod
   use EnergyVarInTransferMod
   use WaterVarInitMod
   use WaterVarInTransferMod
+  use BiochemVarInitMod
+  use BiochemVarInTransferMod
 
   implicit none
 
@@ -69,6 +71,8 @@ contains
     call EnergyVarInTransfer   (noahmp, NoahmpIO)
     call WaterVarInitDefault   (noahmp)
     call WaterVarInTransfer    (noahmp, NoahmpIO)
+    call BiochemVarInitDefault (noahmp)
+    call BiochemVarInTransfer  (noahmp, NoahmpIO)
 
     nsoil = noahmp%config%domain%NumSoilLayer
 
@@ -253,6 +257,31 @@ contains
     do L = 1, nsoil
        p=p+1; buf(p) = wp%SoilMatPotentialSat(L)
     enddo
+
+    ! ---- [G9] vegetated flux tile: Ball-Berry stomata + Jarvis + transpiration
+    !      params (energy + biochem). Consumed only when the veg tile activates. ----
+    associate(bp => noahmp%biochem%param)
+    p=p+1; buf(p) = ep%ConductanceLeafMin        ! BP_TABLE
+    p=p+1; buf(p) = ep%Co2MmConst25C             ! KC25_TABLE
+    p=p+1; buf(p) = ep%O2MmConst25C              ! KO25_TABLE
+    p=p+1; buf(p) = ep%Co2MmConstQ10             ! AKC_TABLE
+    p=p+1; buf(p) = ep%O2MmConstQ10              ! AKO_TABLE
+    p=p+1; buf(p) = ep%RadiationStressFac        ! RGL_TABLE (Jarvis)
+    p=p+1; buf(p) = ep%ResistanceStomataMin      ! RS_TABLE
+    p=p+1; buf(p) = ep%ResistanceStomataMax      ! RSMAX_TABLE
+    p=p+1; buf(p) = ep%AirTempOptimTransp        ! TOPT_TABLE
+    p=p+1; buf(p) = ep%VaporPresDeficitFac       ! HS_TABLE
+    p=p+1; buf(p) = ep%LeafDimLength             ! DLEAF_TABLE (r_leaf)
+    p=p+1; buf(p) = ep%CanopyWindExtFac          ! CWPVT_TABLE (r_leaf)
+    p=p+1; buf(p) = bp%QuantumEfficiency25C      ! QE25_TABLE
+    p=p+1; buf(p) = bp%CarboxylRateMax25C        ! VCMX25_TABLE
+    p=p+1; buf(p) = bp%CarboxylRateMaxQ10        ! AVCMX_TABLE
+    p=p+1; buf(p) = bp%PhotosynPathC3            ! C3PSN_TABLE
+    p=p+1; buf(p) = bp%SlopeConductToPhotosyn    ! MP_TABLE
+    p=p+1; buf(p) = bp%NitrogenConcFoliageMax    ! FOLNMX_TABLE
+    p=p+1; buf(p) = noahmp%energy%state%PressureAtmosCO2  ! CO2_TABLE*PressAir
+    p=p+1; buf(p) = noahmp%energy%state%PressureAtmosO2   ! O2_TABLE *PressAir
+    end associate
 
     end associate
     nused = p
