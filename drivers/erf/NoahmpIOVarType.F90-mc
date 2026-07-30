@@ -138,11 +138,9 @@ module NoahmpIOVarType
     real(kind=kind_noahmp), allocatable, dimension(:,:)    ::  QFX                 ! latent heat flux [kg s-1 m-2]
 
     ! INOUT (with no Noah LSM equivalent) (as defined in WRF)
-    integer, allocatable, dimension(:,:)                   ::  ISNOWXY             ! actual no. of snow layers
-    real(kind=kind_noahmp), allocatable, dimension(:,:,:)  ::  TSNOXY              ! snow temperature [K]
-    real(kind=kind_noahmp), allocatable, dimension(:,:,:)  ::  ZSNSOXY             ! snow layer depth [m]
-    real(kind=kind_noahmp), allocatable, dimension(:,:,:)  ::  SNICEXY             ! snow layer ice [mm]
-    real(kind=kind_noahmp), allocatable, dimension(:,:,:)  ::  SNLIQXY             ! snow layer liquid water [mm]
+    ! ISNOWXY/TSNOXY/ZSNSOXY/SNICEXY/SNLIQXY promoted into the @NoahmpMacro:Source
+    ! contract (NoahmpIO.H-mc) for C++ ABI exposure; declared in the generated
+    ! FortranStorageFields block above. Do not re-declare here.
     real(kind=kind_noahmp), allocatable, dimension(:,:)    ::  STBLCPXY            ! stable carbon in deep soil [g/m2]
     real(kind=kind_noahmp), allocatable, dimension(:,:)    ::  FASTCPXY            ! short-lived carbon, shallow soil [g/m2]
 

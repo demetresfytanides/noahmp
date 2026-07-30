@@ -179,6 +179,11 @@ KIND_TRAITS = {
                         lambda m: "real(kind=c_kind_noahmp), allocatable, dimension(%s) :: %s"
                                   % (",".join([":"] * m.rank), m.name),
                         "cloc"),
+    "int_array": KindTrait(False, "int",       None,
+                        "type(C_PTR)",
+                        lambda m: "integer(C_INT), allocatable, dimension(%s) :: %s"
+                                  % (",".join([":"] * m.rank), m.name),
+                        "cloc"),
 }
 
 # Line-prefix for the grouped NoahmpIO_type storage declaration of scalar-like
@@ -226,13 +231,17 @@ def parse_members(body, cc, tag):
             # keeps the clause from swallowing a nested bracket. The `[...]` form is
             # ENFORCED: the old `<lo:hi, ...>` clause no longer matches and is a hard
             # error below.
-            m = re.match(r"NoahmpArray([23])D<noahmp_real>\s+(\w+)\s*\[([^\[\]]*)\]$", code)
+            m = re.match(r"NoahmpArray([23])D<(\w+)>\s+(\w+)\s*\[([^\[\]]*)\]$", code)
             if not m:
                 raise SystemExit("NoahmpMacro: cannot parse array decl (want "
-                                 "`NoahmpArray{2,3}D<noahmp_real> NAME[lo:hi, ...];`): %r"
+                                 "`NoahmpArray{2,3}D<noahmp_real|int> NAME[lo:hi, ...];`): %r"
                                  % raw)
-            rank, name = int(m.group(1)), m.group(2)
-            pairs = [p.strip() for p in m.group(3).split(",") if p.strip()]
+            rank, elem, name = int(m.group(1)), m.group(2), m.group(3)
+            akind = {"noahmp_real": "array", "int": "int_array"}.get(elem)
+            if akind is None:
+                raise SystemExit("NoahmpMacro: array %s has unsupported element type "
+                                 "<%s> (want noahmp_real or int): %r" % (name, elem, raw))
+            pairs = [p.strip() for p in m.group(4).split(",") if p.strip()]
             if len(pairs) != rank:
                 raise SystemExit("NoahmpMacro: array %s is %d-D (NoahmpArray%dD) but has "
                                  "%d bound pair(s); the count must equal the rank"
@@ -245,7 +254,7 @@ def parse_members(body, cc, tag):
                 lo, hi = (s.strip() for s in p.split(":"))
                 begin.append(lo)
                 end.append(hi)
-            members.append(Member(name, "array", rank, begin, end))
+            members.append(Member(name, akind, rank, begin, end))
 
         elif re.match(r"noahmp_real\b", code):
             m = re.match(r"noahmp_real\s+(\w+)\s*(=\s*\S.*)?$", code)
@@ -288,7 +297,7 @@ def parse_members(body, cc, tag):
     # SystemExit here. (It checks token IDENTITY, not dimension semantics or order.)
     int_names = {m.name for m in members if m.kind == "int"}
     for m in members:
-        if m.kind != "array":
+        if m.kind not in ("array", "int_array"):
             continue
         for tok in m.begin + m.end:
             if not (re.match(r"^-?\d+$", tok) or tok in int_names):
@@ -499,7 +508,7 @@ def r_cpp_array_views(b, p):
     # constant; the C++ mirror member (`ctype_fi`) comes from the call site.
     out = []
     for m in b.members:
-        if m.kind != "array":
+        if m.kind not in ("array", "int_array"):
             continue
         out.append("      %s = %s%dD<%s>(%s.%s, {%s}, {%s});"
                    % (m.name, ARRAY_TMPL, m.rank, KIND_TRAITS[m.kind].cpp_ptr_base,
@@ -534,7 +543,7 @@ def r_fortran_array_allocate(b, p):
     # site; the guard keeps it idempotent.
     out = []
     for m in b.members:
-        if m.kind != "array":
+        if m.kind not in ("array", "int_array"):
             continue
         bounds = ", ".join("%s:%s" % (lo, hi) for lo, hi in zip(m.begin, m.end))
         out.append("    if ( .not. allocated (%s%%%s) ) allocate ( %s%%%s (%s) )"

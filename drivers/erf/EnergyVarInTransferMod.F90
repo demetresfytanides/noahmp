@@ -103,6 +103,9 @@ contains
     noahmp%energy%param%ResistanceSnowSfc                         = NoahmpIO%RSURF_SNOW_TABLE
     noahmp%energy%param%VegFracAnnMax                             = NoahmpIO%GVFMAX(I,J) / 100.0
     noahmp%energy%param%VegFracGreen                              = NoahmpIO%VEGFRA(I,J) / 100.0
+    if ( I == 280 .and. J == 306 ) then
+       write(*,'(A,2I6,2ES16.8)') "FDBGGVF I,J,GVFMAX,VEGFRA ", I, J, NoahmpIO%GVFMAX(I,J), NoahmpIO%VEGFRA(I,J)
+    endif
     noahmp%energy%param%TreeCrownRadius                           = NoahmpIO%RC_TABLE    (VegType)
     noahmp%energy%param%HeightCanopyTop                           = NoahmpIO%HVT_TABLE   (VegType)
     noahmp%energy%param%HeightCanopyBot                           = NoahmpIO%HVB_TABLE   (VegType)

@@ -126,6 +126,10 @@ contains
     p=p+1; buf(p) = dm%GridSize
     p=p+1; buf(p) = dm%DepthSoilTempBottom
     p=p+1; buf(p) = dm%CosSolarZenithAngle
+    ! phenology monthly-LAI interpolation time inputs (JULIAN/YEARLEN not in C++ ABI)
+    p=p+1; buf(p) = dm%DayJulianInYear
+    p=p+1; buf(p) = real(dm%NumDayInYear, kind_noahmp)
+    p=p+1; buf(p) = dm%Latitude
 
     ! ---- [G2] energy scalar params ----
     p=p+1; buf(p) = ep%SoilHeatCapacity

@@ -271,6 +271,10 @@ subroutine NoahmpReadLandMain(NoahmpIO)
     call get_2d_netcdf("SHDMIN", ncid, NoahmpIO%gvfmin, units, xstart, xend, ystart, yend, FATAL, ierr)
 
     call get_2d_netcdf("SHDMAX", ncid, NoahmpIO%gvfmax, units, xstart, xend, ystart, yend, FATAL, ierr)
+    if (280 >= xstart .and. 280 <= xend .and. 306 >= ystart .and. 306 <= yend) then
+       write(*,'(A,4I6,2ES16.8)') "RDBGGVF xs,xe,ys,ye,GVFMAX(280,306),max ", &
+          xstart, xend, ystart, yend, NoahmpIO%gvfmax(280,306), maxval(NoahmpIO%gvfmax)
+    endif
 
     ierr = nf90_close(ncid)
     call error_handler(ierr, "MODULE_NOAHLSM_ERF_INPUT:  READLAND_ERF:  NF90_CLOSE")

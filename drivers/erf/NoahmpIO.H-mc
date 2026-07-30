@@ -19,6 +19,7 @@
     int its, ite, jts, jte, kts, kte;
     int xstart, xend, ystart, yend;
     int nsoil, nsnow;
+    int nsnso;             // nsnow + nsoil (combined snow+soil layer count for ZSNSOXY)
     int numrad = 2;        // number of shortwave radiation bands; ERF may override
     int itimestep, ntime;
     int rank, blkid, level;
@@ -122,6 +123,14 @@
     NoahmpArray3D<noahmp_real> SMOIS[xstart:xend, 1:nsoil, ystart:yend];    // volumetric soil moisture [m3/m3]
     NoahmpArray3D<noahmp_real> SH2O[xstart:xend, 1:nsoil, ystart:yend];     // volumetric liquid soil moisture [m3/m3]
     NoahmpArray3D<noahmp_real> SMOISEQ[xstart:xend, 1:nsoil, ystart:yend];  // equilibrium volumetric soil moisture [m3/m3]
+    // Snow-layer prognostics (GPU zero-copy stage/writeback; C++ views use positive
+    // 1:nsnow / 1:nsnso bounds over the Fortran storage, which keeps its authoritative
+    // -nsnow+1:0 / -nsnow+1:nsoil bounds via the guarded hand-written VarInit allocate).
+    NoahmpArray3D<noahmp_real> TSNOXY[xstart:xend, 1:nsnow, ystart:yend];   // snow-layer temperature [K]
+    NoahmpArray3D<noahmp_real> SNICEXY[xstart:xend, 1:nsnow, ystart:yend];  // snow-layer ice content [mm]
+    NoahmpArray3D<noahmp_real> SNLIQXY[xstart:xend, 1:nsnow, ystart:yend];  // snow-layer liquid water [mm]
+    NoahmpArray3D<noahmp_real> ZSNSOXY[xstart:xend, 1:nsnso, ystart:yend];  // snow+soil layer-bottom depth [m]
+    NoahmpArray2D<int> ISNOWXY[xstart:xend, ystart:yend];                   // active snow layers (<=0)
 
     // WRF-alike output diagnostics (computed each step by the out-transfer
     // routines; promoted from Fortran-only allocatables so ERF can plot them).

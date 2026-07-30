@@ -32,6 +32,7 @@ contains
               KME     =>  NoahmpIO%KME      ,&
               NSOIL   =>  NoahmpIO%NSOIL    ,&
               NSNOW   =>  NoahmpIO%NSNOW    ,&
+              NSNSO   =>  NoahmpIO%NSNSO    ,&
               NUMRAD  =>  NoahmpIO%NUMRAD    &
              )
 
